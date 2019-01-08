@@ -387,8 +387,6 @@ var (
 
 	// SupportedEtcdVersion lists officially supported etcd versions with corresponding Kubernetes releases
 	SupportedEtcdVersion = map[uint8]string{
-		10: "3.1.12",
-		11: "3.2.18",
 		12: "3.2.24",
 		13: "3.2.24",
 		14: "3.3.10",
