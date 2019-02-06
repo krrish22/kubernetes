@@ -17,6 +17,8 @@ limitations under the License.
 package phases
 
 import (
+	"crypto/rsa"
+	"crypto/x509"
 	"fmt"
 	"strings"
 
@@ -62,6 +64,8 @@ type certsData interface {
 	ExternalCA() bool
 	CertificateDir() string
 	CertificateWriteDir() string
+	TryLoadCertFromDisk(pkiPath, name string) (*x509.Certificate, error)
+	TryLoadKeyFromDisk(pkiPath, name string) (*rsa.PrivateKey, error)
 }
 
 // NewCertsPhase returns the phase for the certs
@@ -225,9 +229,8 @@ func runCAPhase(ca *certsphase.KubeadmCert) func(c workflow.RunData) error {
 			return errors.New("certs phase invoked with an invalid data struct")
 		}
 
-		// TODO(EKF): can we avoid loading these certificates every time?
-		if _, err := pkiutil.TryLoadCertFromDisk(data.CertificateDir(), ca.BaseName); err == nil {
-			if _, err := pkiutil.TryLoadKeyFromDisk(data.CertificateDir(), ca.BaseName); err == nil {
+		if _, err := data.TryLoadCertFromDisk(data.CertificateDir(), ca.BaseName); err == nil {
+			if _, err := data.TryLoadKeyFromDisk(data.CertificateDir(), ca.BaseName); err == nil {
 				fmt.Printf("[certs] Using existing %s certificate authority\n", ca.BaseName)
 				return nil
 			}
@@ -258,9 +261,8 @@ func runCertPhase(cert *certsphase.KubeadmCert, caCert *certsphase.KubeadmCert) 
 			return errors.New("certs phase invoked with an invalid data struct")
 		}
 
-		// TODO(EKF): can we avoid loading these certificates every time?
 		if certData, _, err := pkiutil.TryLoadCertAndKeyFromDisk(data.CertificateDir(), cert.BaseName); err == nil {
-			caCertData, err := pkiutil.TryLoadCertFromDisk(data.CertificateDir(), caCert.BaseName)
+			caCertData, err := data.TryLoadCertFromDisk(data.CertificateDir(), caCert.BaseName)
 			if err != nil {
 				return errors.Wrapf(err, "couldn't load CA certificate %s", caCert.Name)
 			}

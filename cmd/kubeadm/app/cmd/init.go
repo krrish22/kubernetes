@@ -17,6 +17,8 @@ limitations under the License.
 package cmd
 
 import (
+	"crypto/rsa"
+	"crypto/x509"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -47,6 +49,7 @@ import (
 	"k8s.io/kubernetes/cmd/kubeadm/app/util/apiclient"
 	configutil "k8s.io/kubernetes/cmd/kubeadm/app/util/config"
 	kubeconfigutil "k8s.io/kubernetes/cmd/kubeadm/app/util/kubeconfig"
+	"k8s.io/kubernetes/cmd/kubeadm/app/util/pkiutil"
 )
 
 var (
@@ -121,6 +124,8 @@ type initData struct {
 	client                clientset.Interface
 	waiter                apiclient.Waiter
 	outputWriter          io.Writer
+	certificates          map[string]*x509.Certificate
+	privateKeys           map[string]*rsa.PrivateKey
 }
 
 // NewCmdInit returns "kubeadm init" command.
@@ -353,6 +358,8 @@ func newInitData(cmd *cobra.Command, args []string, options *initOptions, out io
 		ignorePreflightErrors: ignorePreflightErrorsSet,
 		externalCA:            externalCA,
 		outputWriter:          out,
+		certificates:          map[string]*x509.Certificate{},
+		privateKeys:           map[string]*rsa.PrivateKey{},
 	}, nil
 }
 
@@ -459,6 +466,34 @@ func (d *initData) Tokens() []string {
 		tokens = append(tokens, bt.Token.String())
 	}
 	return tokens
+}
+
+// TryLoadCertFromDisk tries to get cert from cache or disk
+func (d *initData) TryLoadCertFromDisk(pkiPath, name string) (*x509.Certificate, error) {
+	path := filepath.Join(pkiPath, name)
+	if cert, ok := d.certificates[path]; ok {
+		return cert, nil
+	}
+	cert, err := pkiutil.TryLoadCertFromDisk(pkiPath, name)
+	if err != nil {
+		return nil, err
+	}
+	d.certificates[path] = cert
+	return cert, nil
+}
+
+// TryLoadKeyFromDisk tries to get key from cache or disk
+func (d *initData) TryLoadKeyFromDisk(pkiPath, name string) (*rsa.PrivateKey, error) {
+	path := filepath.Join(pkiPath, name)
+	if key, ok := d.privateKeys[path]; ok {
+		return key, nil
+	}
+	key, err := pkiutil.TryLoadKeyFromDisk(pkiPath, name)
+	if err != nil {
+		return nil, err
+	}
+	d.privateKeys[path] = key
+	return key, nil
 }
 
 func printJoinCommand(out io.Writer, adminKubeConfigPath, token string, skipTokenPrint bool) error {

@@ -51,6 +51,7 @@ go_library(
         "//cmd/kubeadm/app/util/apiclient:go_default_library",
         "//cmd/kubeadm/app/util/config:go_default_library",
         "//cmd/kubeadm/app/util/kubeconfig:go_default_library",
+        "//cmd/kubeadm/app/util/pkiutil:go_default_library",
         "//cmd/kubeadm/app/util/runtime:go_default_library",
         "//cmd/kubeadm/app/util/staticpod:go_default_library",
         "//pkg/util/initsystem:go_default_library",
